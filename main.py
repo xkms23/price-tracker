@@ -1,48 +1,49 @@
 from bs4 import BeautifulSoup
-# import urllib.request
 import requests
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
-    'Accept-Language': 'pl,en-US;q=0.7,en;q=0.3'
-} 
 
-def get_html(url_):
-    response = requests.get(url_, headers=HEADERS)
-    text = response.text
-    return text
+class BaseScraper:
+    def __init__(self):
+        self.HEADERS = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0',
+            'Accept-Language': 'pl,en-US;q=0.7,en;q=0.3'
+        }
 
-# Implementation using urllib.request
+    def get_html(self, url):
+        return requests.get(url, headers=self.HEADERS).text
 
-# def get_html(url_):
-#     fp = urllib.request.urlopen(url_)
-#     mbytes = fp.read()
-#     html = mbytes.decode("utf-8")
-#     fp.close()
-#     return html
+    def get_soup(self, url):
+        return BeautifulSoup(self.get_html(url), 'html.parser')
 
-def get_soup(url_):
-    soup = get_html(url_)
-    return BeautifulSoup(soup, 'html.parser')
+    def get_price(self):
+        pass
 
-def get_amazon_price(url_):
-    soup = get_soup(url_)
-    price_whole = soup.find('span', 'a-price-whole').get_text()[:-1]
-    price_fraction = soup.find('span', 'a-price-fraction').get_text()
-    price = float(f'{price_whole}.{price_fraction}')
-    return price
+class AmazonScraper(BaseScraper):
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
 
-available_sites = {
-    "www.amazon.": (get_amazon_price, [])
-}
+    def get_price(self):
+        soup = self.get_soup(self.url)
+        price_whole = soup.find('span', 'a-price-whole').get_text()[:-1]
+        price_fraction = soup.find('span', 'a-price-fraction').get_text()
+        return float(f'{price_whole}.{price_fraction}')
 
-url = input("Enter the URL\n")
+class App:
+    def __init__(self):
+        self.available_sites = {
+            "www.amazon.": (AmazonScraper, [])
+        }
+        self.start()
 
-for k, v in available_sites.items():
-    if k in url:
-        func, arg =  v
-        price = func(url)
-        print(price)
+    def start(self):
+        url = input("Enter the URL:\n")
 
+        for k, v in self.available_sites.items():
+            if k in url:
+                Scraper, arg = v
+                price = Scraper(url).get_price()
+                print(price)
 
-
+if __name__ == '__main__':
+    App()
